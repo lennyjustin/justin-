@@ -29,6 +29,17 @@ The `render.yaml` Blueprint provisions a Docker-based PHP web service and a Rend
 
 The Render deployment uses its own empty PostgreSQL database; it does not copy users, saved estimates, or custom rates from a local MySQL installation. Export and migrate local data separately if it needs to be retained.
 
+## Deploy to Vercel
+
+Vercel can run this PHP application using its Container Runtime and the root-level `Dockerfile.vercel`. The container requires a PostgreSQL database URL; Vercel does not provide a built-in PostgreSQL database. Connect a PostgreSQL provider through the Vercel Marketplace or configure an existing PostgreSQL `DATABASE_URL` in the Vercel project's environment variables before deployment.
+
+1. In Vercel, choose **Add New > Project** and import the GitHub repository containing this project.
+2. Select the `construction-estimator` branch if importing the existing repository, and use the `JengaEstimate` folder as the Root Directory when the repository contains more than this project.
+3. Connect a PostgreSQL provider and make its `DATABASE_URL` available to the project. Do not commit database credentials.
+4. Deploy. Vercel builds `Dockerfile.vercel`; the container applies `database/schema.postgresql.sql` at startup and serves the PHP application through Apache.
+
+The Vercel PostgreSQL database starts empty. Local MySQL users, saved estimates and custom rates are not migrated automatically. When `DATABASE_URL` is set, PHP sessions are stored in PostgreSQL so sign-in can survive container restarts and scale-out.
+
 ## Features
 
 - Responsive landing page, estimator, pricing, account, project dashboard and rate-management pages.
