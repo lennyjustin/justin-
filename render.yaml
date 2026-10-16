@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: fleetcare-ea
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: FLEETCARE_DB_HOST
+        sync: false
+      - key: FLEETCARE_DB_PORT
+        value: "3306"
+      - key: FLEETCARE_DB_NAME
+        sync: false
+      - key: FLEETCARE_DB_USER
+        sync: false
+      - key: FLEETCARE_DB_PASSWORD
+        sync: false
