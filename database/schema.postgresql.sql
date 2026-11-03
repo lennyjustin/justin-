@@ -59,13 +59,13 @@ CREATE TABLE IF NOT EXISTS estimate_items (
 
 CREATE INDEX IF NOT EXISTS idx_items_estimate ON estimate_items (estimate_id);
 
-CREATE TABLE IF NOT EXISTS app_sessions (
-    session_id VARCHAR(128) PRIMARY KEY,
-    session_data TEXT NOT NULL,
-    last_activity BIGINT NOT NULL
+CREATE TABLE IF NOT EXISTS user_sessions (
+    sid VARCHAR NOT NULL PRIMARY KEY,
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_app_sessions_last_activity ON app_sessions (last_activity);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions (expire);
 
 INSERT INTO materials (name, unit, quantity_factor, finish_sensitive, default_price, sort_order) VALUES
     ('Cement', '50 kg bag', 0.4200, 0, 850.00, 1),

@@ -1,0 +1,46 @@
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: construction
+      POSTGRES_USER: jengaestimate
+      POSTGRES_PASSWORD: local-development-only
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jengaestimate -d construction"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  calculator:
+    image: python:3.12-slim
+    working_dir: /app
+    command: ["python", "calculator.py"]
+    environment:
+      PORT: 8001
+    volumes:
+      - ./calculator:/app:ro
+    ports:
+      - "8001:8001"
+
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://jengaestimate:local-development-only@database:5432/construction
+      SESSION_SECRET: local-development-only-change-this-secret-before-deploying
+      ESTIMATE_SERVICE_URL: http://calculator:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+      calculator:
+        condition: service_started
+
+volumes:
+  postgres-data:

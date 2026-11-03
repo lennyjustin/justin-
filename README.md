@@ -1,57 +1,50 @@
 # Construction Estimator
 
-A Kenya-first construction planning estimator built with PHP, MySQL, HTML, CSS and vanilla JavaScript. Its home page explains the estimator's purpose, the information users enter, what the cost breakdown includes, how to use the result, and the limitations of the planning assumptions. The first version supports preliminary estimates, user accounts, saved estimates and private material-price overrides.
+A Kenya-first construction planning estimator. The web interface is React and JSX, the API and PostgreSQL persistence run on Node.js/Express, and a small Python HTTP service validates and calculates estimate totals. It supports preliminary estimates, accounts, saved estimates, private material-rate overrides, and print-friendly summaries.
 
 ## Requirements
 
-- PHP 8.1 or later with PDO MySQL enabled
-- MySQL 8.0+ or a compatible MariaDB version
-- Apache, Nginx, or PHP's local development server
+- Node.js 22 or later and npm
+- Python 3.12 or later (calculator uses only the Python standard library)
+- PostgreSQL 14 or later
 
-## Local setup (XAMPP on Windows)
+## Run locally with Docker Compose
 
-1. Copy this folder into `C:\xampp\htdocs\jengaestimate`.
-2. Start Apache and MySQL from the XAMPP Control Panel.
-3. Open phpMyAdmin and import `database/schema.sql`. It creates the `jengaestimate` database and inserts clearly illustrative sample rates.
-4. Review the database connection values at the top of `config.php`. Defaults are for a typical local XAMPP setup (`root` with no password); set `JENGA_DB_HOST`, `JENGA_DB_NAME`, `JENGA_DB_USER` and `JENGA_DB_PASS` environment variables for other installations.
-5. Visit `http://localhost/jengaestimate/`, create an account and run an estimate.
+1. Install Docker Desktop and start it.
+2. From this folder, run `docker compose up --build`.
+3. Open `http://localhost:3000`.
 
-To use PHP's built-in development server, run `php -S localhost:8000` from this folder and open `http://localhost:8000/`. Make sure MySQL is running and the database is imported first.
+Compose starts PostgreSQL, the Python calculator, and the Node/React app. The database schema and illustrative sample rates are applied by the Node service at startup. The Compose database password and session secret are for local development only.
+
+## Run services without Docker
+
+1. Start a PostgreSQL database and set `DATABASE_URL` to its connection URL.
+2. In one terminal, run `python calculator/calculator.py` (the service listens on port 8001).
+3. In a second terminal, set a private `SESSION_SECRET` of at least 32 characters, run `npm install` and `npm run build`, then `npm start` (the API listens on port 3000).
+4. In a third terminal, run `npm run dev` and open `http://localhost:5173`. Vite proxies `/api` requests to the Node API.
+
+Use the same database URL and session secret for all Node instances. Set `ESTIMATE_SERVICE_URL` if the Python calculator does not listen on `http://127.0.0.1:8001`. The Node API creates its tables and seeds sample rates on startup.
+
+Run `npm test` and `python -m unittest discover -s calculator -p "test_*.py" -v` to run the client and calculator test suites.
 
 ## Deploy to Render
 
-The `render.yaml` Blueprint provisions a Docker-based PHP web service and a Render PostgreSQL database in Singapore. The service starts Apache on Render's port `10000` and applies the idempotent PostgreSQL schema and illustrative sample rates at startup.
+The `render.yaml` Blueprint provisions a Node/React Docker web service, a private Python calculator service, and a PostgreSQL database in Singapore. Review the service and database plans and charges before confirming. Back up an existing database before applying infrastructure changes. Existing PostgreSQL data remains only if Render retains and reuses that database; data in a local MySQL installation is not imported.
 
-1. Push this project to a GitHub or GitLab repository.
-2. In Render, choose **New > Blueprint**, connect the repository, and apply `render.yaml`.
-3. Review the web-service and database plans and any charges before confirming. The Blueprint uses paid plans for persistent hosting and database storage.
-4. Wait for the first deploy to become healthy, then open the `onrender.com` URL shown for the web service.
+Push this folder to a Git repository, then create a Render Blueprint from that repository and apply `render.yaml`. The Node service generates its session secret and uses Render's private network to call the Python service.
 
-The Render deployment uses its own empty PostgreSQL database; it does not copy users, saved estimates, or custom rates from a local MySQL installation. Export and migrate local data separately if it needs to be retained.
+## Project layout
 
-## Deploy to Vercel
+- `client/`: React pages, navigation, API client, and browser entry point.
+- `server/`: Express API, authentication, sessions, and PostgreSQL persistence.
+- `calculator/`: Python calculation service and unit tests.
+- `assets/`: existing CSS, JavaScript, and supplied project-concept images.
+- `database/schema.postgresql.sql`: idempotent PostgreSQL tables and sample material rates.
 
-Vercel can run this PHP application using its Container Runtime and the root-level `Dockerfile.vercel`. The container requires a PostgreSQL database URL; Vercel does not provide a built-in PostgreSQL database. Connect a PostgreSQL provider through the Vercel Marketplace or configure an existing PostgreSQL `DATABASE_URL` in the Vercel project's environment variables before deployment.
+## Estimate assumptions
 
-1. In Vercel, choose **Add New > Project** and import the GitHub repository containing this project.
-2. Select the `construction-estimator` branch if importing the existing repository, and use the `JengaEstimate` folder as the Root Directory when the repository contains more than this project.
-3. Connect a PostgreSQL provider and make its `DATABASE_URL` available to the project. Do not commit database credentials.
-4. Deploy. Vercel builds `Dockerfile.vercel`; the container applies `database/schema.postgresql.sql` at startup and serves the PHP application through Apache.
+The calculator applies simplified per-square-metre factors to adjusted floor area. Project type changes the scope factor; finish level changes paint and labour allowances; transport and contingency are configurable. Seeded prices are illustrative, not verified market prices. This is not a room-by-room take-off or a professional bill of quantities. Confirm designs, quantities, rates, site conditions, and local building requirements with qualified professionals and suppliers before making purchasing or financial decisions.
 
-The Vercel PostgreSQL database starts empty. Local MySQL users, saved estimates and custom rates are not migrated automatically. When `DATABASE_URL` is set, PHP sessions are stored in PostgreSQL so sign-in can survive container restarts and scale-out.
+## Production checklist
 
-## Features
-
-- Responsive landing page, estimator, pricing, account, project dashboard and rate-management pages.
-- CSRF-protected forms, password hashing, PDO prepared statements and user-specific price overrides.
-- Server-side estimate validation and calculation; saved estimates are recalculated on the server rather than trusting submitted totals.
-- Saved estimates open as itemized summaries with project-specific illustrations and can be printed or saved as PDFs.
-- Homepage project concepts use customer-supplied images and clearly labeled indicative budget ranges.
-
-## Estimation assumptions
-
-The calculator applies simplified per-square-metre quantity factors to adjusted floor area. Project type changes a rough scope factor; finish level changes paint allowance and labour percentage; transport and contingency are configurable. The seeded prices are placeholders and are not current, verified market prices. This is not a room-by-room take-off engine or professional bill of quantities. Confirm design, quantities, rates, soil/site conditions and local building requirements with qualified construction professionals and suppliers before making purchasing or financial decisions.
-
-## Before a public launch
-
-Use HTTPS, set strong database credentials, disable detailed PHP errors for visitors while logging them privately, configure backups and email/password recovery, add abuse controls, and have a qualified quantity surveyor or other construction professional review the calculation assumptions. Pricing pages are proposals only; subscriptions and payment processing are not implemented.
+Set strong database credentials and a private session secret, use HTTPS, configure backups and private error logging, and have a qualified construction professional review the assumptions. Password recovery, subscriptions, and payments are not implemented.
